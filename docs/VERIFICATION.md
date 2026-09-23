@@ -1,48 +1,63 @@
 # Verification and Engineering Evidence
 
-This showcase distinguishes verified implementation behavior from design goals.
+This document separates **verified implementation evidence** from performance goals and future work.
 
-## Verified in the project
+## Source snapshot
 
-The private EDITH Overdrive codebase includes automated coverage for behaviors such as:
+```text
+Private repository: Aceishere66/EDITH-Overdrive
+Source commit: d677b1d998d3a6e1f3edd8acf656e98e0b1341f8
+```
 
-- fast telemetry cache reuse
-- reuse of the same raw sensor snapshot between consumers
+The source revision records **201 passing C# tests**.
+
+## Automated guardrails
+
+The private codebase includes tests for behaviors such as:
+
+- dashboard telemetry cache reuse
+- reuse of one raw sensor snapshot across dashboard/logger consumers
 - foreground-session cache reuse
 - benchmark-adapter readiness caching
 - slow-maintenance snapshot caching
-- benchmark-summary cache reuse
-- background-loop behavior and failure handling
+- benchmark-summary caching
+- lifecycle/failure behavior
+- regression protection around performance-sensitive paths
 
-The normal local verification flow includes restore, build and test of the .NET solution.
+A representative subset is included in [`samples/PerformanceGuardrailTests.cs`](../samples/PerformanceGuardrailTests.cs).
 
-## Hardware/runtime validation
+## Platform validation
 
-Windows-specific behavior is validated on Windows hardware because the project depends on:
+The project depends on Windows-specific behavior:
 
 - WinUI 3
-- Windows APIs
 - hardware telemetry
 - Event Viewer
 - registry-based signals
 - PresentMon
 - local package/update tooling
 
-Cloud development sessions are useful for architecture, code review and tests, but are not treated as a replacement for physical Windows validation.
+For those paths, build/unit-test success is not treated as a replacement for Windows runtime validation.
 
 ## Performance reference
 
-A local development sample reported approximately 0.47% average process CPU after warm-up with the default dashboard refresh and no active frame capture.
+A local development sample with the default dashboard refresh and no active frame capture reported approximately:
 
-This is intentionally documented as a **reference measurement**, not a universal performance claim.
+| Metric | Reference |
+|---|---:|
+| Process CPU | 0.47% average |
+| Working set | 263.5 MB |
+| Private memory | 191.9 MB |
 
-## Current limitations
+These numbers are development evidence from one environment, not guaranteed limits.
 
-Examples of limitations intentionally surfaced instead of hidden:
+## Known limits surfaced explicitly
 
-- hardware sensors vary between machines
-- aggressive refresh rates increase overhead
-- PresentMon capture adds separate cost
-- foreground-app awareness is heuristic
-- some Windows diagnostics depend on permissions
-- some update/inventory data sources have incomplete coverage
+- sensor availability varies by hardware
+- lower refresh intervals increase polling cost
+- PresentMon capture adds separate overhead
+- foreground-app/game awareness is heuristic
+- some diagnostics depend on local permissions
+- software/update inventory coverage is necessarily incomplete
+
+The project treats these limits as observable system states rather than hiding them behind invented values.
