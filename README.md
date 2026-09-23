@@ -1,5 +1,7 @@
 # EDITH Overdrive — Performance Cockpit
 
+[**English**](README.md) · [Italiano](README.it.md)
+
 **Windows systems engineering · telemetry · concurrency · performance**
 
 EDITH Overdrive is a Windows 11 performance cockpit developed within **EDITH Dev Studio**. The private development repository contains the full application; this repository is a curated engineering edition for technical review.
