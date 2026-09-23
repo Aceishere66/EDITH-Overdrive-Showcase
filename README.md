@@ -1,111 +1,109 @@
 # EDITH Overdrive — Performance Cockpit
 
-Curated engineering showcase of **EDITH Overdrive**, a Windows performance cockpit developed within EDITH Dev Studio.
+**Windows systems engineering · telemetry · concurrency · performance**
 
-> This repository is a portfolio-oriented public edition of a larger private project. It intentionally exposes selected architecture, engineering decisions and representative source samples while excluding private configuration, local data, internal planning material and unrelated implementation detail.
+EDITH Overdrive is a Windows 11 performance cockpit developed within **EDITH Dev Studio**. The private development repository contains the full application; this repository is a curated engineering edition for technical review.
 
-## What the project is
+> Public-showcase policy: expose architecture, representative source and verification evidence without publishing private configuration, machine data, internal planning material or the complete product source.
 
-EDITH Overdrive is a Windows 11 desktop application focused on **low-overhead telemetry, diagnostics, benchmarking and performance-state visibility**, especially for gaming and second-screen use.
+## Engineering problem
 
-The engineering problem is not simply reading hardware values. The application has to collect heterogeneous system data without making the monitoring tool itself a meaningful source of performance degradation.
+A monitoring tool can become part of the problem it is measuring.
 
-## Engineering focus
+EDITH Overdrive therefore treats **runtime overhead, data freshness and graceful degradation as architectural requirements**, not as polish added at the end.
 
-- low-overhead live telemetry
-- asynchronous/concurrent data acquisition
-- separation of fast and slow paths
-- snapshot caching and polling control
-- graceful degradation when sensors are unavailable
-- local persistence and historical telemetry
-- benchmark ingestion and comparison
-- performance guardrails
-- explicit, review-first maintenance actions
-- automated tests around caching, lifecycle and failure behavior
+The application collects heterogeneous system data while keeping expensive work out of the live dashboard path.
 
 ## Stack
 
-- C#
-- .NET 8
+- C# / .NET 8
 - WinUI 3
 - SQLite
 - MVVM
 - LibreHardwareMonitor
-- PresentMon integration
+- PresentMon
+- Windows platform APIs
+- xUnit
 
-## Core architecture
+## Architecture
 
-```text
-Hardware / OS providers
-        │
-        ▼
-Fast telemetry services
-        │
-        ├── snapshot cache
-        ├── network telemetry
-        └── storage telemetry
-        │
-        ▼
-Application aggregation
-        │
-        ├── Dashboard
-        ├── History
-        └── Background logging
+```mermaid
+flowchart TD
+    A[Hardware / OS providers] --> B[FastTelemetryService]
+    B --> C[TelemetrySnapshotCache]
+    B --> D[Network telemetry]
+    B --> E[Storage telemetry]
+    C --> F[Dashboard]
+    C --> G[Background sensor logging]
+    G --> H[SQLite history]
 
-Slow path
-        │
-        ├── diagnostics
-        ├── maintenance
-        ├── update review
-        └── reports
+    I[Diagnostics] --> J[Slow maintenance path]
+    K[Update review] --> J
+    L[Maintenance scans] --> J
+    J --> M[Cached maintenance snapshot]
+    M --> F
 ```
 
-The live dashboard and heavier maintenance/diagnostic work are intentionally separated so expensive operations do not run on each UI refresh.
+The fast path and slow path are intentionally isolated. Event-log scans, package review and heavy diagnostics do not run on every dashboard refresh.
 
 ## Representative engineering decisions
 
-### Shared telemetry snapshots
+### Shared snapshots instead of duplicate polling
 
-The dashboard and background logger reuse a shared hardware snapshot instead of polling the same hardware independently. A refresh gate prevents concurrent refreshes from multiplying provider work.
+The dashboard and background logger can reuse the same raw hardware snapshot. A `SemaphoreSlim` refresh gate prevents simultaneous stale-data requests from multiplying expensive provider calls.
 
-### Missing data is normal
+### Explicit freshness semantics
 
-A missing or unsupported sensor does not cause the application to fail. Partial telemetry is represented explicitly as unavailable rather than replaced with fabricated values.
+Different consumers use different TTLs. Live dashboard state has a short freshness window; background logging can reuse a slightly older raw hardware snapshot when appropriate.
 
-### Performance is a requirement
+### Partial data is valid system state
 
-The project includes regression-oriented tests that verify cache reuse and protect the intended low-overhead architecture.
+Unsupported or unavailable sensors are represented as unavailable. The rest of the application remains functional instead of fabricating values or treating one missing provider as a global failure.
 
-### Real measurements vs approximations
+### Performance guardrails
 
-The UI distinguishes measured signals from derived or limited signals. Diagnostic estimates and unavailable data are not presented as stronger evidence than they are.
+Automated tests cover cache reuse and other low-overhead invariants so architectural regressions can be caught before becoming UI-visible performance problems.
 
-## Local baseline
+## Verification snapshot
 
-A Windows 11 local reference sample recorded during development, with the default live dashboard refresh and no active benchmark capture, measured approximately:
+The current private-source snapshot used for this showcase is:
+
+```text
+d677b1d998d3a6e1f3edd8acf656e98e0b1341f8
+```
+
+That source revision records **201 passing C# tests** after its latest UI/lifecycle hardening pass.
+
+Windows-specific functionality is additionally validated on Windows because WinUI, hardware telemetry, PresentMon and several OS integrations cannot be fully proven in a platform-neutral environment.
+
+### Local performance reference
+
+A development measurement with the default live dashboard refresh and no active benchmark capture reported approximately:
 
 - process CPU: **0.47% average** over a short post-warm-up idle sample
 - working set: **263.5 MB**
 - private memory: **191.9 MB**
 
-These values are a development reference, not a guaranteed ceiling. Actual overhead depends on hardware, drivers, sensor availability, refresh cadence and benchmark capture state.
+This is a reference measurement, not a universal ceiling. Hardware, drivers, refresh cadence and active frame capture can change the result.
 
 ## Selected source
 
-The `samples/` directory contains representative source taken from the private project:
+The `samples/` directory contains architecture-relevant excerpts from the private codebase:
 
-- `FastTelemetryService.cs` — live telemetry aggregation, TTL caching and refresh serialization
-- `TelemetrySnapshotCache.cs` — thread-safe shared snapshot storage
+- [FastTelemetryService.cs](samples/FastTelemetryService.cs) — refresh serialization, TTL caching and snapshot reuse
+- [TelemetrySnapshotCache.cs](samples/TelemetrySnapshotCache.cs) — thread-safe shared snapshot storage
+- [PerformanceGuardrailTests.cs](samples/PerformanceGuardrailTests.cs) — regression tests protecting cache reuse
 
-The private project still contains legacy `SentinelPC` namespaces from the previous project name. They are preserved in the samples so the source remains faithful to the implementation.
+The private project was originally named **SentinelPC**. Some namespaces in the selected source still use the legacy name and are preserved intentionally so the excerpts remain faithful to the implementation.
 
 ## Documentation
 
 - [Architecture](docs/ARCHITECTURE.md)
-- [Verification and engineering evidence](docs/VERIFICATION.md)
+- [Verification and evidence](docs/VERIFICATION.md)
+- [Source provenance](docs/SOURCE_PROVENANCE.md)
 - [Public showcase scope](docs/PUBLIC_SCOPE.md)
 
-## Related
+## Links
 
 - Engineering portfolio: https://github.com/Aceishere66/engineering-portfolio
 - EDITH Dev Studio engineering page: https://edithdevstudio.com/engineering
