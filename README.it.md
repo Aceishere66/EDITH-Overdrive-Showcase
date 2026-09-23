@@ -108,4 +108,4 @@ Il progetto privato si chiamava inizialmente **SentinelPC**. Alcuni namespace ne
 ## Link
 
 - Engineering portfolio: https://github.com/Aceishere66/engineering-portfolio
-- EDITH Dev Studio engineering page: https://edithdevstudio.com/engineering
+- EDITH Dev Studio engineering page: https://edithdevstudio.com/engineering/
